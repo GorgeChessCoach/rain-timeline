@@ -20,14 +20,14 @@ header{display:flex;align-items:center;justify-content:space-between;min-height:
 <p id="status" role="status">Loading forecast…</p>
 <div id="days" aria-live="polite"></div>
 <p id="error" role="alert"></p>
-<nav aria-label="Forecast navigation"><button id="previous" disabled>← Previous</button><span id="page"></span><button id="next" disabled>Next three days →</button></nav>
+
 <footer>Forecast data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Rainfall in inches</footer>
 </main>
 <script>
 (()=>{
 'use strict';
 const root=document.getElementById('days');const status=document.getElementById('status');const error=document.getElementById('error');
-const back=document.getElementById('previous');const next=document.getElementById('next');const pageText=document.getElementById('page');
+
 let daily=[],page=0;
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const localToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -44,10 +44,24 @@ function render(){
 if(!daily.length)return;
 const chosen=daily.slice(page*3,page*3+3),max=Math.max(.025,...daily.flatMap(d=>d.hours));
 root.innerHTML=chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(nameOf(d.date))}</h2>${plot(d.hours,page===0&&i===0,max)}</section>`).join('');
-back.disabled=page===0;next.disabled=(page+1)*3>=daily.length;pageText.textContent=`Days ${page*3+1}–${Math.min((page+1)*3,daily.length)} of ${daily.length}`;
+
 }
-back.addEventListener('click',()=>{if(page>0){page--;render()}});
-next.addEventListener('click',()=>{if((page+1)*3<daily.length){page++;render()}});
+// Swipe horizontally to move between groups of three days.
+let touchStart=null;
+document.addEventListener('touchstart',event=>{
+  if(event.touches.length!==1)return;
+  touchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
+},{passive:true});
+document.addEventListener('touchend',event=>{
+  if(!touchStart||!daily.length||event.changedTouches.length!==1)return;
+  const dx=event.changedTouches[0].clientX-touchStart.x;
+  const dy=event.changedTouches[0].clientY-touchStart.y;
+  touchStart=null;
+  if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.25)return;
+  const target=page+(dx<0?1:-1);
+  if(target>=0&&target*3<daily.length){page=target;render();}
+},{passive:true});
+document.addEventListener('touchcancel',()=>{touchStart=null;},{passive:true});
 async function load(){
 try{
 const url='https://api.open-meteo.com/v1/forecast?latitude=45.7054&longitude=-121.5215&hourly=precipitation&precipitation_unit=inch&timezone=America%2FLos_Angeles&forecast_days=9';
