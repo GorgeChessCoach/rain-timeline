@@ -9,7 +9,7 @@
 :root{color-scheme:light;--ink:#223045;--muted:#768395;--line:#dce4ec;--blue:#2788c6;--surface:#f8fafc}
 *{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 main{width:min(100%,540px);margin:0 auto;padding: max(18px,env(safe-area-inset-top)) 19px max(28px,env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;justify-content:space-between;min-height:45px;margin-bottom:6px}header .place{font-size:13px;letter-spacing:.025em;color:var(--muted)}h1{font-size:18px;font-weight:650;letter-spacing:-.025em;margin:0}#status{min-height:19px;margin:0 0 8px;font-size:12px;color:var(--muted)}
+header{display:flex;align-items:center;justify-content:space-between;min-height:45px;margin-bottom:6px}header .place{font-size:13px;letter-spacing:.025em;color:var(--muted)}h1{font-size:18px;font-weight:650;letter-spacing:-.025em;margin:0}#days{overflow:hidden}#days .slide{will-change:transform}#status{min-height:19px;margin:0 0 8px;font-size:12px;color:var(--muted)}
 .day{padding:20px 0 21px;border-bottom:1px solid var(--line)}.day:last-of-type{border-bottom:0}.day h2{margin:0 0 4px;font-size:21px;font-weight:650;letter-spacing:-.035em}.plot{width:100%;height:auto;display:block;overflow:visible}.bar{fill:var(--blue)}.grid{stroke:var(--line);stroke-width:1}.axis{fill:var(--muted);font-size:11px}.now{stroke:#bd7c3f;stroke-width:1.3;stroke-dasharray:3 4}nav{display:flex;justify-content:space-between;align-items:center;padding-top:16px;gap:12px}button{font:inherit;font-size:14px;border:1px solid #cad6e1;border-radius:9px;background:white;color:var(--ink);padding:11px 15px;min-height:44px;cursor:pointer}button:disabled{opacity:.28;cursor:default}#page{font-size:12px;color:var(--muted)}footer{padding:28px 0 8px;text-align:center;font-size:11px;color:var(--muted)}footer a{color:inherit}#error{display:none;color:#a33737;font-size:14px;padding:18px 0}.day .empty{color:var(--muted);font-size:12px;position:absolute;left:0;right:0;top:50%;text-align:center;transform:translateY(-50%)}
 @media(max-width:360px){main{padding-left:14px;padding-right:14px}.day{padding:17px 0}.day h2{font-size:19px}}
 </style>
@@ -43,11 +43,11 @@ return `<svg class="plot" viewBox="0 0 360 148" role="img" aria-label="Hourly pr
 function render(){
 if(!daily.length)return;
 const chosen=daily.slice(page*3,page*3+3),max=Math.max(.025,...daily.flatMap(d=>d.hours));
-root.innerHTML=chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date))}</h2>${plot(d.hours,page===0&&i===0,max)}</section>`).join('');
+root.innerHTML='<div>'+chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date))}</h2>${plot(d.hours,page===0&&i===0,max)}</section>`).join('')+'</div>';
 
 }
 // Swipe horizontally to move between groups of three days.
-let touchStart=null;
+let touchStart=null;let animating=false;
 document.addEventListener('touchstart',event=>{
   if(event.touches.length!==1)return;
   touchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
@@ -59,7 +59,44 @@ document.addEventListener('touchend',event=>{
   touchStart=null;
   if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.25)return;
   const target=page+(dx<0?1:-1);
-  if(target>=0&&target*3<daily.length){page=target;render();}
+  if(target>=0&&target*3<daily.length && !animating){
+    const direction=dx<0?1:-1;
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      page=target;render();
+    }else{
+      animating=true;
+      const outgoing=root.firstElementChild;
+      const width=root.getBoundingClientRect().width;
+      const incoming=document.createElement('div');
+      // Construct next page offscreen while the current page remains visible.
+      const currentPage=page;
+      page=target;render();
+      incoming.innerHTML=root.innerHTML;
+      page=currentPage;
+      root.innerHTML='';
+      outgoing.classList.add('slide');
+      incoming.classList.add('slide');
+      root.style.position='relative';
+      root.style.height=outgoing.getBoundingClientRect().height+'px';
+      outgoing.style.width='100%';
+      incoming.style.width='100%';
+      incoming.style.position='absolute';
+      incoming.style.top='0';
+      incoming.style.left='0';
+      incoming.style.transform='translateX('+direction*100+'%)';
+      root.append(outgoing,incoming);
+      const options={duration:230,easing:'cubic-bezier(.2,.75,.25,1)',fill:'forwards'};
+      const first=outgoing.animate([{transform:'translateX(0)'},{transform:'translateX('+(-direction*100)+'%)'}],options);
+      const second=incoming.animate([{transform:'translateX('+direction*100+'%)'},{transform:'translateX(0)'}],options);
+      Promise.all([first.finished,second.finished]).catch(()=>{}).then(()=>{
+        page=target;
+        root.style.height='';
+        root.style.position='';
+        render();
+        animating=false;
+      });
+    }
+  }
 },{passive:true});
 document.addEventListener('touchcancel',()=>{touchStart=null;},{passive:true});
 async function load(){
