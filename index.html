@@ -43,7 +43,7 @@ return `<svg class="plot" viewBox="0 0 360 148" role="img" aria-label="Hourly pr
 function render(){
 if(!daily.length)return;
 const chosen=daily.slice(page*3,page*3+3),max=Math.max(.025,...daily.flatMap(d=>d.hours));
-root.innerHTML=chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(nameOf(d.date))}</h2>${plot(d.hours,page===0&&i===0,max)}</section>`).join('');
+root.innerHTML=chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date))}</h2>${plot(d.hours,page===0&&i===0,max)}</section>`).join('');
 
 }
 // Swipe horizontally to move between groups of three days.
