@@ -115,6 +115,14 @@ status.textContent='';render();
 loadSix();
 }catch(e){status.textContent='';error.textContent='Unable to load the live forecast. Please check your internet connection and reload.';error.style.display='block';console.error(e)}
 }
+let lastRefresh=Date.now();
+function refreshOnReturn(){
+ if(Date.now()-lastRefresh<1500)return;
+ lastRefresh=Date.now();
+ load();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOnReturn()});
+window.addEventListener('pageshow',event=>{if(event.persisted)refreshOnReturn()});
 load();
 })();
 </script>
