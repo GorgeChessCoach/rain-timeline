@@ -46,13 +46,12 @@ for(let i=0;i<24;i++){const amount=Math.max(0,Number(hours[i])||0),h=Math.min(he
 for(const [hour,label] of [[3,'3a'],[6,'6a'],[9,'9a'],[12,'12p'],[15,'3p'],[18,'6p'],[21,'9p']]){pieces.push(`<text class="axis" x="${left+hour*width}" y="${(bottom+21).toFixed(2)}" text-anchor="${hour===0?'start':hour===24?'end':'middle'}">${label}</text>`)}
 if(isToday){const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date());const h=Number(parts.find(p=>p.type==='hour').value)%24,m=Number(parts.find(p=>p.type==='minute').value);const x=left+(h+m/60)*width,y=bottom+1.3;pieces.push(`<polygon points="${(x-4.62).toFixed(2)},${y.toFixed(2)} ${(x+4.62).toFixed(2)},${y.toFixed(2)} ${x.toFixed(2)},${(y+8.03).toFixed(2)}" fill="#e3bf37"/>`)}
 return `<svg class="plot" viewBox="0 0 360 ${Math.ceil(bottom+29)}" role="img" aria-label="Hourly precipitation forecast in inches, midnight to midnight"><defs><linearGradient id="liquid-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86c5e8"/><stop offset="0.48" stop-color="#2788c6"/><stop offset="1" stop-color="#2788c6"/></linearGradient></defs>${pieces.join('')}</svg>`}
-function plotSix(values,times,scale,sunrise,sunset){
+function plotSix(values,times){
 const width=357.4/23,left=1.3-width/2,height=8*width,bottom=27+height;
 const timeHours=time=>{const match=/T(\d{2}):(\d{2})/.exec(time||'');return match?Number(match[1])+Number(match[2])/60:null};
 const first=timeHours(times[0]);
-const sunriseHour=timeHours(sunrise),sunsetHour=timeHours(sunset);
 const parts=[];
-if(first!==null&&sunriseHour!==null&&sunsetHour!==null){
+if(first!==null){
   for(let i=0;i<24;i++){
     const date=times[i]?.slice(0,10);
     const sunEntry=daily.find(d=>d.date===date);
@@ -86,7 +85,7 @@ root.innerHTML='<div>'+six+chosen.map((d,i)=>`<section class="day"><h2>${escapeH
 }
 async function loadSix(){
 try{
- const url='https://api.open-meteo.com/v1/forecast?latitude=45.7054&longitude=-121.5215&minutely_15=precipitation&precipitation_unit=inch&timezone=America%2FLos_Angeles&models=best_match&forecast_minutely_15=28';
+ const url='https://api.open-meteo.com/v1/forecast?latitude=45.7054&longitude=-121.5215&minutely_15=precipitation&precipitation_unit=inch&timezone=America%2FLos_Angeles&forecast_minutely_15=28';
  const response=await fetch(url);if(!response.ok)throw new Error('15-minute forecast unavailable');
  const data=await response.json(),times=data.minutely_15?.time,vals=data.minutely_15?.precipitation;
  if(!Array.isArray(times)||!Array.isArray(vals)||times.length<24||vals.length<24)throw new Error('Insufficient 15-minute forecast');
