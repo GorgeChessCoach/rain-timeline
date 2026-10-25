@@ -70,10 +70,11 @@ for(let i=0;i<24;i++){
  const val=Number(values[i])||0,h=Math.min(height,Math.max(0,val)/max*height);
  if(val>0)parts.push(`<rect class="bar" x="${(left+i*width+1).toFixed(2)}" y="${(bottom-h+1.3).toFixed(2)}" width="${(width-2).toFixed(2)}" height="${Math.max(1.5,h).toFixed(2)}" rx="${Math.min((width-2)/2,Math.max(1.5,h)/2).toFixed(2)}"><title>${times[i]}: ${val.toFixed(3)} inches forecast</title></rect>`);
 }
-const labelHour=t=>{const h=Number(t.slice(11,13));return ((h%12)||12)+(h<12?'a':'p')};
-for(let i=0;i<=24;i+=4){
- const index=Math.min(i,23),label=i===24?labelHour(times[23].slice(0,11)+String((Number(times[23].slice(11,13))+(Number(times[23].slice(14,16))===45?1:0))%24).padStart(2,"0")+":00"):labelHour(times[index]);
- const x=Math.max(19,Math.min(341,left+i*width));
+const startMinutes=Number(times[0].slice(11,13))*60+Number(times[0].slice(14,16));
+for(let i=0;i<=6;i++){
+ const total=(startMinutes+i*60)%1440,h=Math.floor(total/60),m=total%60;
+ const label=((h%12)||12)+(m?':'+String(m).padStart(2,'0'):'')+(h<12?'a':'p');
+ const x=19+i*(322/6);
  parts.push(`<text class="axis" x="${x.toFixed(2)}" y="${(bottom+21).toFixed(2)}" text-anchor="middle">${label}</text>`);
 }
 return `<svg class="plot" viewBox="0 0 360 ${Math.ceil(bottom+29)}" role="img" aria-label="Precipitation forecast for the next six hours, in 15 minute intervals"><defs><linearGradient id="liquid-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86c5e8"/><stop offset="0.48" stop-color="#2788c6"/><stop offset="1" stop-color="#2788c6"/></linearGradient></defs>${parts.join('')}</svg>`;
