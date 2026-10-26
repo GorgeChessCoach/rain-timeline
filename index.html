@@ -48,7 +48,7 @@ if(isToday){const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_A
 return `<svg class="plot" viewBox="0 0 360 ${Math.ceil(bottom+29)}" role="img" aria-label="Hourly precipitation forecast in inches, midnight to midnight"><defs><linearGradient id="liquid-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86c5e8"/><stop offset="0.48" stop-color="#2788c6"/><stop offset="1" stop-color="#2788c6"/></linearGradient></defs>${pieces.join('')}</svg>`}
 function plotSix(values,times){
 const width=357.4/23,left=1.3-width/2,height=8*width,bottom=27+height;
-const startX=left+3*width,quarterWidth=18*width/24,rightEdge=left+23.5*width+1.3;
+const startX=left+3*width,quarterWidth=18*width/24,leftEdge=left+width/2-1.3,rightEdge=left+23.5*width+1.3;
 const timeHours=time=>{const match=/T(\d{2}):(\d{2})/.exec(time||'');return match?Number(match[1])+Number(match[2])/60:null};
 const first=timeHours(times[0]);
 const parts=[];
@@ -59,7 +59,7 @@ if(first!==null){
     const rise=timeHours(sunEntry?.sunrise),set=timeHours(sunEntry?.sunset);
     const hour=timeHours(times[i]);
     if(hour!==null&&rise!==null&&set!==null&&(hour<rise||hour>=set))
-      parts.push(`<rect x="${(startX+i*quarterWidth).toFixed(2)}" y="${(bottom-height-1.3).toFixed(2)}" width="${(i===23?rightEdge-(startX+i*quarterWidth):quarterWidth).toFixed(2)}" height="${(height+2.6).toFixed(2)}" fill="#7293ad" opacity=".09"/>`);
+      parts.push(`<rect x="${(i===0?leftEdge:startX+i*quarterWidth).toFixed(2)}" y="${(bottom-height-1.3).toFixed(2)}" width="${(i===23?rightEdge-(i===0?leftEdge:startX+i*quarterWidth):i===0?startX+quarterWidth-leftEdge:quarterWidth).toFixed(2)}" height="${(height+2.6).toFixed(2)}" fill="#7293ad" opacity=".09"/>`);
   }
 }
 for(let row=0;row<=8;row++)for(let col=0;col<24;col++){
