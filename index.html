@@ -32,6 +32,18 @@ main{width:min(100%,540px);margin:0 auto;padding: max(18px,env(safe-area-inset-t
 const root=document.getElementById('days');const status=document.getElementById('status');const error=document.getElementById('error');
 
 let daily=[];let nextSix=[];let nextSixTimes=[];let hourlySix=[];let hourlySixTimes=[];let ecmwfSix=[];let ecmwfSixTimes=[];
+function saveForecast(model,times,values){
+ try{
+  const key='rain-timeline-forecast-history';
+  const history=JSON.parse(localStorage.getItem(key)||'[]');
+  if(!Array.isArray(history))return;
+  const now=new Date().toISOString();
+  history.push({recordedAt:now,model,unit:'inch',times:[...times],precipitation:[...values]});
+  const cutoff=Date.now()-45*86400000;
+  const recent=history.filter(item=>Date.parse(item.recordedAt)>=cutoff).slice(-600);
+  localStorage.setItem(key,JSON.stringify(recent));
+ }catch(e){console.warn('Forecast history could not be saved:',e)}
+}
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const localToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 function nameOf(date){const [y,m,d]=date.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)))}
@@ -103,6 +115,7 @@ try{
   ecmwfSixTimes.push(times[start+h].slice(0,14)+String(q*15).padStart(2,'0'));
   ecmwfSix.push(amounts[start+h]??0);
  }
+ saveForecast('ECMWF',ecmwfSixTimes,ecmwfSix);
  render();
 }catch(e){console.warn('ECMWF forecast unavailable:',e)}
 }
@@ -117,7 +130,7 @@ try{
  const nowLocal=`${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour')==='24'?'00':getPart('hour')}:${getPart('minute')}`;
  const start=times.findIndex(t=>t>=nowLocal.slice(0,13)+':00');
  if(start<0||times.length-start<24)throw new Error('Not enough future quarter-hours');
- nextSixTimes=times.slice(start,start+24);nextSix=vals.slice(start,start+24);render();
+ nextSixTimes=times.slice(start,start+24);nextSix=vals.slice(start,start+24);saveForecast('Meteo 15',nextSixTimes,nextSix);render();
 }catch(error){console.warn('Six-hour forecast unavailable:',error)}
 }
 async function load(){
@@ -141,6 +154,7 @@ if(start>=0&&start+6<times.length){
   }
 }
 if(daily.length<3)throw new Error('Not enough forecast days');
+if(hourlySix.length===24)saveForecast('Meteo 60',hourlySixTimes,hourlySix);
 status.textContent='';render();
 loadSix();
 loadECMWF();
