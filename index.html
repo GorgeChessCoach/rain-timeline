@@ -83,9 +83,9 @@ return `<svg class="plot" viewBox="0 0 360 ${Math.ceil(bottom+29)}" role="img" a
 function render(){
 if(!daily.length)return;
 const chosen=daily,max=Math.max(.025,...daily.flatMap(d=>d.hours));
-const sixA=nextSix.length===24?`<section class="day"><h2>Next 6 Hours Model A</h2>${plotSix(nextSix,nextSixTimes)}</section>`:'';
-const sixB=hourlySix.length===24?`<section class="day"><h2>Next 6 Hours Model B</h2>${plotSix(hourlySix,hourlySixTimes)}</section>`:'';
-const sixC=ecmwfSix.length===24?`<section class="day"><h2>Next 6 Hours Model C</h2>${plotSix(ecmwfSix,ecmwfSixTimes)}</section>`:'';
+const sixA=nextSix.length===24?`<section class="day"><h2>Meteo 15</h2>${plotSix(nextSix,nextSixTimes)}</section>`:'';
+const sixB=hourlySix.length===24?`<section class="day"><h2>Meteo 60</h2>${plotSix(hourlySix,hourlySixTimes)}</section>`:'';
+const sixC=ecmwfSix.length===24?`<section class="day"><h2>ECMWF</h2>${plotSix(ecmwfSix,ecmwfSixTimes)}</section>`:'';
 root.innerHTML='<div>'+sixA+sixB+sixC+chosen.slice(1).map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date)+(i>=6?' '+Number(d.date.slice(5,7))+'/'+Number(d.date.slice(8,10)):''))}</h2>${plot(d.hours,d.date===localToday(),max,d.sunrise,d.sunset)}</section>`).join('')+'</div>';
 
 }
