@@ -31,7 +31,7 @@ main{width:min(100%,540px);margin:0 auto;padding: max(18px,env(safe-area-inset-t
 'use strict';
 const root=document.getElementById('days');const status=document.getElementById('status');const error=document.getElementById('error');
 
-let daily=[];let nextSix=[];let nextSixTimes=[];
+let daily=[];let nextSix=[];let nextSixTimes=[];let hourlySix=[];let hourlySixTimes=[];
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const localToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 function nameOf(date){const [y,m,d]=date.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)))}
@@ -83,8 +83,9 @@ return `<svg class="plot" viewBox="0 0 360 ${Math.ceil(bottom+29)}" role="img" a
 function render(){
 if(!daily.length)return;
 const chosen=daily,max=Math.max(.025,...daily.flatMap(d=>d.hours));
-const six=nextSix.length===24?`<section class="day"><h2>Next 6 Hours</h2>${plotSix(nextSix,nextSixTimes)}</section>`:'';
-root.innerHTML='<div>'+six+chosen.map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date)+(i>=7?' '+Number(d.date.slice(5,7))+'/'+Number(d.date.slice(8,10)):''))}</h2>${plot(d.hours,d.date===localToday(),max,d.sunrise,d.sunset)}</section>`).join('')+'</div>';
+const sixA=nextSix.length===24?`<section class="day"><h2>Next 6 Hours Model A</h2>${plotSix(nextSix,nextSixTimes)}</section>`:'';
+const sixB=hourlySix.length===24?`<section class="day"><h2>Next 6 Hours Model B</h2>${plotSix(hourlySix,hourlySixTimes)}</section>`:'';
+root.innerHTML='<div>'+sixA+sixB+chosen.slice(1).map((d,i)=>`<section class="day"><h2>${escapeHTML(d.date===localToday()?'Today':nameOf(d.date)+(i>=6?' '+Number(d.date.slice(5,7))+'/'+Number(d.date.slice(8,10)):''))}</h2>${plot(d.hours,d.date===localToday(),max,d.sunrise,d.sunset)}</section>`).join('')+'</div>';
 
 }
 async function loadSix(){
@@ -110,6 +111,17 @@ if(!Array.isArray(times)||!Array.isArray(amounts)||times.length!==amounts.length
 const grouped=new Map();for(let i=0;i<times.length;i++){const day=times[i].slice(0,10),hour=Number(times[i].slice(11,13));if(!grouped.has(day))grouped.set(day,Array(24).fill(0));if(hour>=0&&hour<=23)grouped.get(day)[hour]=amounts[i]??0}
 const sunTimes=new Map((json.daily?.time||[]).map((date,i)=>[date,{sunrise:json.daily.sunrise?.[i],sunset:json.daily.sunset?.[i]}]));
 daily=[...grouped].map(([date,hours])=>({date,hours,...sunTimes.get(date)})).slice(0,11);
+const nowParts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hour12:false}).formatToParts(new Date());
+const part=k=>nowParts.find(p=>p.type===k)?.value;
+const currentHour=`${part('year')}-${part('month')}-${part('day')}T${part('hour')==='24'?'00':part('hour')}:00`;
+const start=times.findIndex(t=>t===currentHour);
+hourlySix=[];hourlySixTimes=[];
+if(start>=0&&start+6<times.length){
+  for(let h=0;h<6;h++)for(let q=0;q<4;q++){
+    hourlySixTimes.push(times[start+h].slice(0,14)+String(q*15).padStart(2,'0'));
+    hourlySix.push(amounts[start+h]??0);
+  }
+}
 if(daily.length<3)throw new Error('Not enough forecast days');
 status.textContent='';render();
 loadSix();
